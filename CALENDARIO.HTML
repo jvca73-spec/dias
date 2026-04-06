@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Solicitud de Día 227</title>
+
+<style>
+body {
+    font-family: Arial;
+    background: #f4f6f9;
+    text-align: center;
+}
+
+.calendar {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    max-width: 900px;
+    margin: 20px auto;
+    gap: 5px;
+}
+
+.header {
+    background: #1976d2;
+    color: white;
+    padding: 10px;
+    font-weight: bold;
+}
+
+.day, .other-month {
+    background: white;
+    min-height: 110px;
+    padding: 5px;
+    border-radius: 6px;
+    text-align: left;
+}
+
+.other-month {
+    background: #eee;
+    color: #999;
+}
+
+.day:hover {
+    background: #e3f2fd;
+    cursor: pointer;
+}
+
+.note {
+    font-size: 12px;
+}
+
+.owner {
+    font-size: 10px;
+    color: gray;
+}
+
+textarea {
+    width: 90%;
+    height: 80px;
+}
+</style>
+</head>
+
+<body>
+
+<h1>SOLICITUD DE DIA 227</h1>
+
+<!-- LOGIN -->
+<div id="loginBox">
+    <input id="username" placeholder="Usuario">
+    <input id="password" type="password" placeholder="Contraseña"><br>
+    <button onclick="register()">Registro</button>
+    <button onclick="login()">Login</button>
+</div>
+
+<div id="app" style="display:none;">
+    Usuario: <b id="currentUser"></b>
+    <button onclick="logout()">Salir</button>
+
+    <br><br>
+
+    <select id="month"></select>
+    <select id="year"></select>
+
+    <div class="calendar" id="calendar"></div>
+
+    <div id="editor" style="display:none;">
+        <h3 id="selectedDay"></h3>
+        <textarea id="note"></textarea><br>
+        <button onclick="saveNote()">Guardar</button>
+    </div>
+</div>
+
+<script>
+let currentUser = null;
+let selectedDate = null;
+let selectedIndex = null;
+
+const calendar = document.getElementById("calendar");
+
+const months = ["Enero","Febrero","Marzo","Abril","Mayo","Junio",
+"Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+
+// selects
+months.forEach((m,i)=>{
+    month.innerHTML += `<option value="${i}">${m}</option>`;
+});
+
+for(let y=2020;y<=2035;y++){
+    year.innerHTML += `<option value="${y}">${y}</option>`;
+}
+
+const today = new Date();
+month.value = today.getMonth();
+year.value = today.getFullYear();
+
+// AUTH
+function register(){
+    localStorage.setItem("user-"+username.value, password.value);
+    alert("Registrado");
+}
+
+function login(){
+    if(localStorage.getItem("user-"+username.value)===password.value){
+        currentUser=username.value;
+        loginBox.style.display="none";
+        app.style.display="block";
+        currentUserSpan.innerText=currentUser;
+        render();
+    }else alert("Error");
+}
+
+function logout(){ location.reload(); }
+
+// CALENDARIO CORRECTO
+function render(){
+    calendar.innerHTML="";
+
+    const days=["Lun","Mar","Mié","Jue","Vie","Sáb","Dom"];
+    days.forEach(d=>calendar.innerHTML+=`<div class="header">${d}</div>`);
+
+    let y=parseInt(year.value);
+    let m=parseInt(month.value);
+
+    let firstDay = new Date(y,m,1);
+    let startDay = (firstDay.getDay()+6)%7;
+
+    let daysInMonth = new Date(y,m+1,0).getDate();
+    let prevMonthDays = new Date(y,m,0).getDate();
+
+    let totalCells = 42; // 6 semanas
+
+    for(let i=0;i<totalCells;i++){
+
+        let dayNum, currentMonth=true;
+
+        if(i<startDay){
+            dayNum = prevMonthDays - startDay + i +1;
+            currentMonth=false;
+        }
+        else if(i>=startDay+daysInMonth){
+            dayNum = i - (startDay+daysInMonth) +1;
+            currentMonth=false;
+        }
+        else{
+            dayNum = i-startDay+1;
+        }
+
+        let dateKey = `${y}-${m}-${dayNum}`;
+        let notes = JSON.parse(localStorage.getItem(dateKey)||"[]");
+
+        let notesHTML = notes.map(n=>`
+            <div class="note">${n.text}</div>
+            <div class="owner">👤 ${n.user}</div>
+        `).join("");
+
+        let div=document.createElement("div");
+        div.className = currentMonth ? "day" : "other-month";
+
+        div.innerHTML = `<b>${dayNum}</b>${notesHTML}`;
+
+        if(currentMonth){
+            div.onclick=()=>openEditor(dayNum,m,y,notes);
+        }
+
+        calendar.appendChild(div);
+    }
+}
+
+function openEditor(d,m,y,notes){
+    selectedDate=`${y}-${m}-${d}`;
+    selectedIndex=null;
+
+    let index=notes.findIndex(n=>n.user===currentUser);
+
+    if(index!==-1){
+        selectedIndex=index;
+        note.value=notes[index].text;
+    }else{
+        note.value="";
+    }
+
+    selectedDay.innerText=`Día ${d} de ${months[m]} ${y}`;
+    editor.style.display="block";
+}
+
+function saveNote(){
+    let notes = JSON.parse(localStorage.getItem(selectedDate)||"[]");
+
+    if(selectedIndex!==null){
+        notes[selectedIndex].text=note.value;
+    }else{
+        notes.push({user:currentUser,text:note.value});
+    }
+
+    localStorage.setItem(selectedDate,JSON.stringify(notes));
+    render();
+}
+
+// eventos
+month.onchange=render;
+year.onchange=render;
+</script>
+
+</body>
+</html>
